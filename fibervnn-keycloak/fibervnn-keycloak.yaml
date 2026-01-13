@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fibervnn-keycloak
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fibervnn-keycloak
+  template:
+    metadata:
+      labels:
+        app: fibervnn-keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:23.0.0
+          args: ["start-dev"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL
+              value: jdbc:postgresql://fibervnn-keycloak-db:5432/keycloak_db
+            - name: KC_DB_USERNAME
+              value: keycloak
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: keycloak-db-password
+            - name: KEYCLOAK_ADMIN
+              value: admin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: keycloak-admin-password
+            - name: KC_PROXY
+              value: "edge" 
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fibervnn-keycloak
+  namespace: fibervnn
+spec:
+  selector:
+    app: fibervnn-keycloak
+  ports:
+    - port: 8080
+      targetPort: 8080
