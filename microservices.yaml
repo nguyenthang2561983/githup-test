@@ -1,0 +1,299 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-service
+  template:
+    metadata:
+      labels:
+        app: customer-service
+    spec:
+      containers:
+        - name: customer-service
+          image: fibervnn-subscriber-management-customer-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/customer_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: SERVICE_HISTORY_URL
+              value: http://history-service:8085/logs
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: customer-service
+  ports:
+    - port: 8081
+      targetPort: 8081
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: package-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: package-service
+  template:
+    metadata:
+      labels:
+        app: package-service
+    spec:
+      containers:
+        - name: package-service
+          image: fibervnn-subscriber-management-package-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/package_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: SERVICE_HISTORY_URL
+              value: http://history-service:8085/logs
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: package-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: package-service
+  ports:
+    - port: 8084
+      targetPort: 8084
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: package-customer-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: package-customer-service
+  template:
+    metadata:
+      labels:
+        app: package-customer-service
+    spec:
+      containers:
+        - name: package-customer-service
+          image: fibervnn-subscriber-management-package-customer-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/package_customer_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+            # Service Discovery - pointing to K8s Services
+            - name: PACKAGE_SERVICE_URL
+              value: http://package-service:8084/packages
+            - name: IP_SERVICE_URL
+              value: http://ipaddress-service:8083/ips
+            - name: HISTORY_SERVICE_URL
+              value: http://history-service:8085/logs
+            - name: SERVICE_HISTORY_URL
+              value: http://history-service:8085/logs
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: package-customer-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: package-customer-service
+  ports:
+    - port: 8082
+      targetPort: 8082
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipaddress-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipaddress-service
+  template:
+    metadata:
+      labels:
+        app: ipaddress-service
+    spec:
+      containers:
+        - name: ipaddress-service
+          image: fibervnn-subscriber-management-ipaddress-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/ipaddress_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: SERVICE_HISTORY_URL
+              value: http://history-service:8085/logs
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ipaddress-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: ipaddress-service
+  ports:
+    - port: 8083
+      targetPort: 8083
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: history-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-service
+  template:
+    metadata:
+      labels:
+        app: history-service
+    spec:
+      containers:
+        - name: history-service
+          image: fibervnn-subscriber-management-history-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/history_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: history-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: history-service
+  ports:
+    - port: 8085
+      targetPort: 8085
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-info-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-info-service
+  template:
+    metadata:
+      labels:
+        app: service-info-service
+    spec:
+      containers:
+        - name: service-info-service
+          image: fibervnn-subscriber-management-service-info-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8086
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/service_info_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-info-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: service-info-service
+  ports:
+    - port: 8086
+      targetPort: 8086
