@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipaddress-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipaddress-service
+  template:
+    metadata:
+      labels:
+        app: ipaddress-service
+    spec:
+      containers:
+        - name: ipaddress-service
+          image: fibervnn-subscriber-management-ipaddress-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/ipaddress_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: SERVICE_HISTORY_URL
+              value: http://history-service:8085/logs
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ipaddress-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: ipaddress-service
+  ports:
+    - port: 8083
+      targetPort: 8083
