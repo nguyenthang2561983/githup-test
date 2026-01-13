@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-info-service
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-info-service
+  template:
+    metadata:
+      labels:
+        app: service-info-service
+    spec:
+      containers:
+        - name: service-info-service
+          image: fibervnn-subscriber-management-service-info-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8086
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://fibervnn-postgres:5432/service_info_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: postgres-password
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-info-service
+  namespace: fibervnn
+spec:
+  selector:
+    app: service-info-service
+  ports:
+    - port: 8086
+      targetPort: 8086
