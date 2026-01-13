@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fibervnn-keycloak-db
+  namespace: fibervnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fibervnn-keycloak-db
+  template:
+    metadata:
+      labels:
+        app: fibervnn-keycloak-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: keycloak_db
+            - name: POSTGRES_USER
+              value: keycloak
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fibervnn-secrets
+                  key: keycloak-db-password
+          volumeMounts:
+            - name: keycloak-db-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: keycloak-db-data
+          persistentVolumeClaim:
+            claimName: keycloak-db-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fibervnn-keycloak-db
+  namespace: fibervnn
+spec:
+  selector:
+    app: fibervnn-keycloak-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-db-pvc
+  namespace: fibervnn
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
